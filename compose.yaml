@@ -1,0 +1,89 @@
+name: cryptowatch-complete-standalone
+
+x-db-environment: &db-environment
+  DB_HOST: postgres
+  POSTGRES_DB: ${POSTGRES_DB:-cryptowatch_data}
+  POSTGRES_USER: ${POSTGRES_USER:-cryptowatch_app}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+
+x-collector-environment: &collector-environment
+  <<: *db-environment
+  CHECK_INTERVAL: ${CHECK_INTERVAL:-60}
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cryptowatch_data}
+      POSTGRES_USER: ${POSTGRES_USER:-cryptowatch_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      <<: *db-environment
+    ports:
+      - "127.0.0.1:${CRYPTOWATCH_PORT:-8096}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  binance-collector:
+    build:
+      context: ./collectors
+    restart: unless-stopped
+    environment:
+      <<: *collector-environment
+      EXCHANGE: binance
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  coinbase-collector:
+    build:
+      context: ./collectors
+    restart: unless-stopped
+    environment:
+      <<: *collector-environment
+      EXCHANGE: coinbase
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  kraken-collector:
+    build:
+      context: ./collectors
+    restart: unless-stopped
+    environment:
+      <<: *collector-environment
+      EXCHANGE: kraken
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  bitstamp-collector:
+    build:
+      context: ./collectors
+    restart: unless-stopped
+    environment:
+      <<: *collector-environment
+      EXCHANGE: bitstamp
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

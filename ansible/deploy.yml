@@ -1,0 +1,136 @@
+---
+- name: Deploy CryptoWatch Complete
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    cryptowatch_directories:
+      - api
+      - api/services
+      - api/static
+      - collectors
+      - collectors/binance
+      - collectors/coinbase
+      - database
+
+    cryptowatch_files:
+      - .env.example
+      - .gitignore
+      - README.md
+      - compose.yaml
+      - database/init.sql
+      - api/Dockerfile
+      - api/app.py
+      - api/requirements.txt
+      - api/services/manual_refresh.py
+      - api/static/chart.css
+      - api/static/chart.js
+      - api/static/index.html
+      - collectors/Dockerfile
+      - collectors/app.py
+      - collectors/requirements.txt
+      - collectors/binance/Dockerfile
+      - collectors/binance/app.py
+      - collectors/coinbase/Dockerfile
+      - collectors/coinbase/app.py
+
+  tasks:
+    - name: Create installation directory
+      ansible.builtin.file:
+        path: "{{ cryptowatch_directory }}"
+        state: directory
+        mode: "0755"
+
+    - name: Create application directories
+      ansible.builtin.file:
+        path: "{{ cryptowatch_directory }}/{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ cryptowatch_directories }}"
+
+    - name: Copy application files
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../{{ item }}"
+        dest: "{{ cryptowatch_directory }}/{{ item }}"
+        mode: "0644"
+      loop: "{{ cryptowatch_files }}"
+
+    - name: Generate private database configuration
+      ansible.builtin.shell: |
+        python3 - <<'PY'
+        from pathlib import Path
+        import os
+        import secrets
+        import string
+
+        root = Path.cwd()
+        target = root / ".env"
+
+        if target.exists() or target.is_symlink():
+            raise SystemExit("STOP: .env already exists.")
+
+        template = (root / ".env.example").read_text(encoding="utf-8")
+        placeholder = "REPLACE_WITH_A_NEW_RANDOM_PASSWORD"
+
+        if template.count(placeholder) != 1:
+            raise SystemExit("STOP: Password placeholder mismatch.")
+
+        alphabet = string.ascii_letters + string.digits
+        password = "".join(secrets.choice(alphabet) for _ in range(40))
+
+        lines = template.replace(placeholder, password).splitlines()
+        port_lines = [line for line in lines if line.startswith("CRYPTOWATCH_PORT=")]
+
+        if len(port_lines) != 1:
+            raise SystemExit("STOP: Port configuration mismatch.")
+
+        lines = [
+            "CRYPTOWATCH_PORT=" + os.environ["CW_INSTALL_PORT"]
+            if line.startswith("CRYPTOWATCH_PORT=")
+            else line
+            for line in lines
+        ]
+
+        fd = os.open(
+            target,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+            0o600
+        )
+
+        with os.fdopen(fd, "w", encoding="utf-8") as file:
+            file.write("\n".join(lines) + "\n")
+        PY
+      args:
+        chdir: "{{ cryptowatch_directory }}"
+        executable: /bin/bash
+      environment:
+        CW_INSTALL_PORT: "{{ cryptowatch_port | string }}"
+      no_log: true
+
+    - name: Validate Docker Compose configuration
+      become: "{{ cryptowatch_docker_become | bool }}"
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - -p
+          - "{{ cryptowatch_project }}"
+          - config
+          - --quiet
+        chdir: "{{ cryptowatch_directory }}"
+      changed_when: false
+
+    - name: Build and start all six services
+      become: "{{ cryptowatch_docker_become | bool }}"
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - -p
+          - "{{ cryptowatch_project }}"
+          - up
+          - -d
+          - --build
+        chdir: "{{ cryptowatch_directory }}"
+      changed_when: true

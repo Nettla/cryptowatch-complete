@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CryptoWatch | Live Ethereum Prices</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 40px 24px;
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            font-size: 30px;
+            font-weight: 800;
+            color: #60a5fa;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        .status {
+            padding: 10px 16px;
+            border-radius: 30px;
+            background: #14532d;
+            color: #86efac;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status.error {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+
+        .description {
+            color: #94a3b8;
+            margin-bottom: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 26px;
+            border: 1px solid #334155;
+            border-radius: 16px;
+        }
+
+        .exchange {
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .price {
+            margin-top: 18px;
+            font-size: 30px;
+            font-weight: 800;
+            overflow-wrap: anywhere;
+        }
+
+        .symbol {
+            color: #60a5fa;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .updated {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 22px;
+        }
+
+        .info {
+            margin-top: 36px;
+            padding: 24px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+
+        .info h2 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+
+        .info p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        footer {
+            margin-top: 48px;
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .logo {
+                font-size: 26px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/chart.css">
+</head>
+
+<body>
+    <div class="container">
+
+        <header>
+            <div>
+                <div class="logo">CryptoWatch</div>
+                <div class="subtitle">
+                    Cryptocurrency Market Monitoring
+                </div>
+            </div>
+
+            <div id="status" class="status">
+                Connecting...
+            </div>
+        </header>
+
+        <main>
+            <h1>Live Ethereum Prices</h1>
+
+            <p class="description">
+                Latest ETH prices across four cryptocurrency
+                exchanges.
+            </p>
+
+            <div id="prices" class="grid">
+                <p>Loading market data...</p>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <button
+                    id="manual-refresh"
+                    class="chart-button"
+                    type="button"
+                >
+                    Refresh prices
+                </button>
+                <span
+                    id="manual-refresh-status"
+                    role="status"
+                    aria-live="polite"
+                    style="margin-left: 12px;"
+                ></span>
+            </div>
+
+
+<section class="chart-panel">
+    <div class="chart-header">
+        <div>
+            <h2>ETH Market Average</h2>
+            <div class="chart-description">
+                Historical average across four exchanges
+            </div>
+        </div>
+
+        <div class="chart-controls">
+            <button class="chart-button active" data-hours="1">1H</button>
+            <button class="chart-button" data-hours="6">6H</button>
+            <button class="chart-button" data-hours="24">24H</button>
+        </div>
+    </div>
+
+    <div id="chart-value" class="chart-value">Loading...</div>
+    <div id="chart-time" class="chart-time">Fetching market history</div>
+
+    <div class="chart-area">
+        <canvas id="average-chart"></canvas>
+    </div>
+
+    <div class="chart-note">
+        Indicative average of Binance ETH/USDT and
+        Coinbase, Kraken and Bitstamp ETH/USD.
+        Only intervals containing all four exchanges are included.
+    </div>
+</section>
+
+<section class="info">
+                <h2>Market Data</h2>
+
+                <p>
+                    Prices are collected automatically from
+                    Binance, Coinbase, Kraken and Bitstamp.
+                </p>
+
+                <p>
+                    Data collection interval: 120 seconds.
+                    Dashboard refresh interval: 30 seconds.
+                </p>
+
+                <p>
+                    Binance uses ETH/USDT.
+                    Other exchanges use ETH/USD.
+                    Prices may not be directly comparable.
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            CryptoWatch &copy; 2026
+            | Powered by Python, FastAPI and PostgreSQL
+        </footer>
+
+    </div>
+
+    <script>
+        const pricesContainer =
+            document.getElementById("prices");
+
+        const statusElement =
+            document.getElementById("status");
+
+        function formatPrice(value) {
+            return Number(value).toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function formatTime(value) {
+            return new Date(value).toLocaleString("en-GB");
+        }
+
+        function createCard(item) {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const exchange = document.createElement("div");
+            exchange.className = "exchange";
+            exchange.textContent =
+                item.exchange.toUpperCase();
+
+            const price = document.createElement("div");
+            price.className = "price";
+            price.textContent =
+                formatPrice(item.price);
+
+            const symbol = document.createElement("div");
+            symbol.className = "symbol";
+            symbol.textContent = item.symbol;
+
+            const updated = document.createElement("div");
+            updated.className = "updated";
+            updated.textContent =
+                "Last updated: " +
+                formatTime(item.recorded_at);
+
+            card.append(
+                exchange,
+                price,
+                symbol,
+                updated
+            );
+
+            return card;
+        }
+
+        async function loadPrices() {
+            try {
+                const response = await fetch(
+                    "/prices/latest",
+                    { cache: "no-store" }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Failed to fetch market data"
+                    );
+                }
+
+                const data = await response.json();
+
+                pricesContainer.replaceChildren();
+
+                for (const item of data.prices) {
+                    pricesContainer.appendChild(
+                        createCard(item)
+                    );
+                }
+
+                statusElement.textContent = "API Connected";
+                statusElement.classList.remove("error");
+
+            } catch (error) {
+                console.error(error);
+
+                statusElement.textContent =
+                    "Connection Error";
+
+                statusElement.classList.add("error");
+
+                if (!pricesContainer.children.length) {
+                    pricesContainer.textContent =
+                        "Unable to load market data.";
+                }
+            }
+        }
+
+        const refreshButton =
+            document.getElementById("manual-refresh");
+
+        const refreshStatus =
+            document.getElementById("manual-refresh-status");
+
+        refreshButton.addEventListener("click", async () => {
+            refreshButton.disabled = true;
+            refreshButton.textContent = "Refreshing...";
+            refreshStatus.textContent = "Fetching live prices...";
+
+            try {
+                const response = await fetch(
+                    "/prices/manual-refresh",
+                    {
+                        method: "POST",
+                        cache: "no-store"
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Refresh failed (HTTP " + response.status + ")"
+                    );
+                }
+
+                const result = await response.json();
+
+                await loadPrices();
+
+                window.dispatchEvent(
+                    new Event("cryptowatch:refresh-chart")
+                );
+
+                if (result.status === "partial") {
+                    refreshStatus.textContent =
+                        "Updated " + result.updated +
+                        " exchanges. Unavailable: " +
+                        result.failed.join(", ");
+                } else {
+                    refreshStatus.textContent =
+                        "Updated " + result.updated + " exchanges.";
+                }
+
+            } catch (error) {
+                refreshStatus.textContent =
+                    "Unable to refresh prices. Please try again.";
+                console.error("Manual refresh:", error);
+
+            } finally {
+                refreshButton.disabled = false;
+                refreshButton.textContent = "Refresh prices";
+            }
+        });
+
+        loadPrices();
+
+        setInterval(loadPrices, 30000);
+    </script>
+    <script src="/chart.js"></script>
+</body>
+</html>
