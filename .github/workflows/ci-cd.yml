@@ -27,7 +27,7 @@ jobs:
           docker build -t cryptowatch-${{ matrix.component }}:test ./${{ matrix.component }}
 
       - name: Trivy Security Scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: cryptowatch-${{ matrix.component }}:test
           severity: HIGH,CRITICAL
