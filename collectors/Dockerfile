@@ -9,6 +9,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip setuptools
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip uninstall -y setuptools
+RUN python -m pip uninstall -y pip
 
 # Copy collector application
 COPY app.py .
