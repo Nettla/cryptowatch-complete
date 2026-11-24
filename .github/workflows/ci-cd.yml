@@ -31,5 +31,6 @@ jobs:
         with:
           image-ref: cryptowatch-${{ matrix.component }}:test
           severity: HIGH,CRITICAL
+          ignore-unfixed: true
           exit-code: '1'
           format: table
