@@ -1,0 +1,35 @@
+name: CryptoWatch CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        component: [api, collectors]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t cryptowatch-${{ matrix.component }}:test ./${{ matrix.component }}
+
+      - name: Trivy Security Scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: cryptowatch-${{ matrix.component }}:test
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: table
