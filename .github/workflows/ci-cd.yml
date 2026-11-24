@@ -9,11 +9,11 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         component: [api, collectors]
@@ -34,3 +34,21 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Publish Docker image
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          IMAGE=ghcr.io/nettla/cryptowatch-complete-${{ matrix.component }}
+
+          docker tag cryptowatch-${{ matrix.component }}:test "$IMAGE:$GITHUB_SHA"
+          docker tag cryptowatch-${{ matrix.component }}:test "$IMAGE:latest"
+
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:latest"
